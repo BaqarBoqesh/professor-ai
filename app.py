@@ -1,11 +1,28 @@
 import os
+import streamlit as st
 from dotenv import load_dotenv
 from supabase import create_client
 from sentence_transformers import SentenceTransformer
 from groq import Groq
-import streamlit as st
 
 load_dotenv()
+
+# 비밀번호 보호
+def check_password():
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    if not st.session_state.authenticated:
+        st.title("🔐 AI 교수님")
+        password = st.text_input("비밀번호를 입력하세요", type="password")
+        if st.button("로그인"):
+            if password == st.secrets["APP_PASSWORD"]:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("비밀번호가 틀렸습니다")
+        st.stop()
+
+check_password()
 
 @st.cache_resource
 def load_resources():
