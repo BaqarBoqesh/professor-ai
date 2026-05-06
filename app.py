@@ -41,6 +41,7 @@ def ask(query):
         model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": f"""당신은 교수님의 강의와 글을 기반으로 답변하는 AI입니다.
+반드시 한국어로만 답변하세요. 절대 일본어, 중국어, 영어를 섞지 마세요.
 {source_info}
 
 참고 자료:
