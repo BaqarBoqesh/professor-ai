@@ -27,7 +27,7 @@ check_password()
 @st.cache_resource
 def load_resources():
     supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
-    model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+    model = SentenceTransformer("jhgan/ko-sroberta-multitask")
     groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
     return supabase, model, groq_client
 
