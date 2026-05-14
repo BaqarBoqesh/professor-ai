@@ -4,7 +4,7 @@ sentence-transformers
 langchain-text-splitters
 pypdf
 python-docx
-groq
+anthropic
 python-dotenv
 google-auth
 google-auth-oauthlib

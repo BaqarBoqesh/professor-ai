@@ -3,7 +3,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from supabase import create_client
 from sentence_transformers import SentenceTransformer
-from groq import Groq
+import anthropic
 
 load_dotenv()
 
@@ -28,10 +28,10 @@ check_password()
 def load_resources():
     supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
     model = SentenceTransformer("jhgan/ko-sroberta-multitask")
-    groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-    return supabase, model, groq_client
+    claude_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    return supabase, model, claude_client
 
-supabase, model, groq_client = load_resources()
+supabase, model, claude_client = load_resources()
 
 def search(query, limit=5):
     try:
@@ -54,10 +54,10 @@ def ask(query):
         context = "관련 자료를 찾지 못했습니다."
         source_info = "자료가 없으면 일반 지식으로 답변하세요."
 
-    response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": f"""당신은 교수님의 강의와 글을 기반으로 답변하는 AI입니다.
+    response = claude_client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=2048,
+        system=f"""당신은 교수님의 강의와 글을 기반으로 답변하는 AI입니다.
 
 [절대 규칙]
 1. 오직 한국어로만 답변하세요
@@ -72,11 +72,12 @@ def ask(query):
 {source_info}
 
 참고 자료:
-{context}"""},
+{context}""",
+        messages=[
             {"role": "user", "content": query}
         ]
     )
-    return response.choices[0].message.content, docs
+    return response.content[0].text, docs
 
 st.title("📚 AI 교수님")
 st.caption("교수님의 강의와 글을 기반으로 답변합니다")
