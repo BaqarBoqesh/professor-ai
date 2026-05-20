@@ -1,4 +1,6 @@
 import os
+import json
+import numpy as np
 import streamlit as st
 from dotenv import load_dotenv
 from supabase import create_client
@@ -60,9 +62,37 @@ def get_file_list():
     except Exception as e:
         return f"자료 목록 조회 오류: {e}"
 
-def search(query, limit=5):
+@st.cache_data(ttl=300)
+def get_known_speakers():
+    try:
+        result = supabase.table("documents").select("metadata").execute()
+        speakers = set()
+        for row in result.data:
+            for s in (row.get("metadata") or {}).get("speakers") or []:
+                speakers.add(s)
+        return speakers
+    except Exception:
+        return set()
+
+def extract_speaker_from_query(query):
+    return next((s for s in get_known_speakers() if s in query), None)
+
+def search(query, limit=5, speaker=None):
     try:
         embedding = model.encode(query).tolist()
+        if speaker:
+            result = supabase.table("documents") \
+                .select("content, metadata, embedding") \
+                .contains("metadata", {"speakers": [speaker]}) \
+                .execute()
+            if result.data:
+                q = np.array(embedding)
+                def cosine(row):
+                    raw = row["embedding"]
+                    e = np.array(json.loads(raw) if isinstance(raw, str) else raw)
+                    return float(np.dot(q, e) / (np.linalg.norm(q) * np.linalg.norm(e) + 1e-9))
+                ranked = sorted(result.data, key=cosine, reverse=True)
+                return ranked[:limit]
         result = supabase.rpc("match_documents", {
             "query_embedding": embedding,
             "match_count": limit
@@ -73,7 +103,8 @@ def search(query, limit=5):
         return []
 
 def ask(query):
-    docs = search(query)
+    speaker = extract_speaker_from_query(query)
+    docs = search(query, speaker=speaker)
     if docs:
         context = "\n\n".join([d["content"] for d in docs])
         source_info = "아래 자료를 참고해서 답변하세요."

@@ -1,5 +1,6 @@
 import os
 import io
+import re
 from dotenv import load_dotenv
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -70,6 +71,9 @@ def delete_from_supabase(supabase, file_id, filename):
     # 기존 데이터 호환: 파일명으로도 삭제
     supabase.table("documents").delete().eq("metadata->>source", filename).execute()
 
+def extract_speakers(text):
+    return sorted(set(re.findall(r'^([^\s:]{1,10}):', text, re.MULTILINE)))
+
 def upload_to_supabase(text, filename, file_id=None, modified_time=None):
     supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
     status = check_upload_status(supabase, file_id, filename, modified_time)
@@ -82,15 +86,18 @@ def upload_to_supabase(text, filename, file_id=None, modified_time=None):
     model = SentenceTransformer("jhgan/ko-sroberta-multitask")
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_text(text)
-    metadata = {"source": filename, "file_id": file_id, "modified_time": modified_time}
+    file_speakers = extract_speakers(text)
+    base_metadata = {"source": filename, "file_id": file_id, "modified_time": modified_time}
     for chunk in chunks:
+        chunk_speakers = extract_speakers(chunk)
+        metadata = {**base_metadata, "speakers": chunk_speakers or file_speakers}
         embedding = model.encode(chunk).tolist()
         supabase.table("documents").insert({
             "content": chunk,
             "metadata": metadata,
             "embedding": embedding
         }).execute()
-    print(f"✅ {filename} → {len(chunks)}개 조각 저장됨")
+    print(f"✅ {filename} → {len(chunks)}개 조각 저장됨 (화자: {file_speakers})")
 
 def sync_drive_folder(folder_id):
     service = get_drive_service()
