@@ -38,6 +38,28 @@ def load_resources():
 
 supabase, model, claude_client = load_resources()
 
+FILE_LIST_KEYWORDS = ["파일 목록", "어떤 자료", "몇 개 파일", "자료 목록", "파일 있어", "자료 있어", "어떤 파일"]
+
+def is_file_list_query(query):
+    return any(kw in query for kw in FILE_LIST_KEYWORDS)
+
+def get_file_list():
+    try:
+        result = supabase.table("documents").select("metadata").execute()
+        if not result.data:
+            return "등록된 자료가 없습니다."
+        sources = sorted({
+            row["metadata"]["source"]
+            for row in result.data
+            if row.get("metadata") and row["metadata"].get("source")
+        })
+        if not sources:
+            return "파일 정보를 찾을 수 없습니다."
+        lines = "\n".join(f"- {s}" for s in sources)
+        return f"현재 등록된 자료는 총 {len(sources)}개입니다:\n\n{lines}"
+    except Exception as e:
+        return f"자료 목록 조회 오류: {e}"
+
 def search(query, limit=5):
     try:
         embedding = model.encode(query).tolist()
@@ -100,10 +122,14 @@ if prompt := st.chat_input("질문을 입력하세요..."):
         st.write(prompt)
     with st.chat_message("assistant"):
         with st.spinner("답변 생성 중..."):
-            answer, sources = ask(prompt)
-            st.write(answer)
-            if sources:
-                with st.expander("📎 참고 자료"):
-                    for doc in sources:
-                        st.caption(doc["content"][:200] + "...")
+            if is_file_list_query(prompt):
+                answer = get_file_list()
+                st.write(answer)
+            else:
+                answer, sources = ask(prompt)
+                st.write(answer)
+                if sources:
+                    with st.expander("📎 참고 자료"):
+                        for doc in sources:
+                            st.caption(doc["content"][:200] + "...")
     st.session_state.messages.append({"role": "assistant", "content": answer})
