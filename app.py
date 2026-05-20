@@ -26,9 +26,14 @@ check_password()
 
 @st.cache_resource
 def load_resources():
-    supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+    supabase = create_client(
+        os.getenv("SUPABASE_URL") or st.secrets.get("SUPABASE_URL"),
+        os.getenv("SUPABASE_KEY") or st.secrets.get("SUPABASE_KEY")
+    )
     model = SentenceTransformer("jhgan/ko-sroberta-multitask")
-    claude_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    claude_client = anthropic.Anthropic(
+        api_key=os.getenv("ANTHROPIC_API_KEY") or st.secrets.get("ANTHROPIC_API_KEY")
+    )
     return supabase, model, claude_client
 
 supabase, model, claude_client = load_resources()
