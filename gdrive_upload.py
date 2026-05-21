@@ -1,6 +1,7 @@
 import os
 import io
 import re
+import anthropic
 from dotenv import load_dotenv
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -74,6 +75,27 @@ def delete_from_supabase(supabase, file_id, filename):
 def extract_speakers(text):
     return sorted(set(re.findall(r'^([^\s:]{1,10}):', text, re.MULTILINE)))
 
+def generate_summary(text, speakers):
+    claude = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    speakers_str = ", ".join(speakers) if speakers else "없음"
+    prompt = f"""다음은 강의 또는 문서 전문입니다. 아래 형식으로 요약해 주세요.
+
+**전체 요약**
+(문서 전체의 핵심 내용을 3~5문장으로 요약)
+
+**화자별 핵심 내용** (화자: {speakers_str})
+(각 화자별로 주요 발언 내용을 2~3문장으로 정리. 화자가 없으면 이 항목은 생략)
+
+---
+{text[:12000]}"""
+    response = claude.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.content[0].text.strip()
+
+
 def upload_to_supabase(text, filename, file_id=None, modified_time=None):
     supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
     status = check_upload_status(supabase, file_id, filename, modified_time)
@@ -84,10 +106,22 @@ def upload_to_supabase(text, filename, file_id=None, modified_time=None):
         print(f"🔄 {filename} → 수정 감지, 기존 데이터 삭제 후 재업로드")
         delete_from_supabase(supabase, file_id, filename)
     model = SentenceTransformer("jhgan/ko-sroberta-multitask")
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    chunks = splitter.split_text(text)
     file_speakers = extract_speakers(text)
-    base_metadata = {"source": filename, "file_id": file_id, "modified_time": modified_time}
+    print(f"🤖 {filename} → 요약 생성 중...")
+    summary = generate_summary(text, file_speakers)
+    # Before: RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=600,
+        chunk_overlap=150,
+        separators=["\n\n", "\n", ". ", "? ", "! ", " "],
+    )
+    chunks = splitter.split_text(text)
+    base_metadata = {
+        "source": filename,
+        "file_id": file_id,
+        "modified_time": modified_time,
+        "summary": summary,
+    }
     for chunk in chunks:
         chunk_speakers = extract_speakers(chunk)
         metadata = {**base_metadata, "speakers": chunk_speakers or file_speakers}

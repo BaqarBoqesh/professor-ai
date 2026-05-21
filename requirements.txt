@@ -1,4 +1,5 @@
 streamlit
+torch --index-url https://download.pytorch.org/whl/cpu
 supabase
 sentence-transformers
 langchain-text-splitters

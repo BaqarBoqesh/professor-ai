@@ -26,7 +26,12 @@ def extract_text(filepath):
 def upload_file(filepath):
     print(f"업로드 중: {filepath}")
     text = extract_text(filepath)
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    # Before: RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=600,
+        chunk_overlap=150,
+        separators=["\n\n", "\n", ". ", "? ", "! ", " "],
+    )
     chunks = splitter.split_text(text)
     for chunk in chunks:
         embedding = model.encode(chunk).tolist()
