@@ -32,7 +32,7 @@ def load_resources():
     )
     model = SentenceTransformer("jhgan/ko-sroberta-multitask")
     # Before: CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")  # 영어 전용 모델
-    reranker = CrossEncoder("bongsoo/mmarco-mMiniLMv2-L12-H384-v1")  # 한국어 포함 다국어 모델
+    reranker = CrossEncoder("cross-encoder/mmarco-mMiniLMv2-L12-H384-v1")  # 한국어 포함 다국어 모델
     claude_client = anthropic.Anthropic(
         api_key=os.getenv("ANTHROPIC_API_KEY") or st.secrets.get("ANTHROPIC_API_KEY")
     )
