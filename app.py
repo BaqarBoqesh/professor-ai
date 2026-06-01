@@ -146,9 +146,9 @@ def search(query, limit=5, speaker=None, source=None):
         result = supabase.rpc("match_documents_hybrid", {
             "query_embedding": embedding,
             "query_text": query,
-            "match_count": limit,
+            "match_count": 30,
         }).execute()
-        return result.data if result.data else []
+        return result.data[:limit] if result.data else []
 
     except Exception as e:
         st.error(f"검색 오류: {e}")
@@ -167,7 +167,7 @@ def ask(query):
     speaker = extract_speaker_from_query(query)
     source = extract_source_from_query(query)
     # Before: docs = search(query, speaker=speaker, source=source)
-    docs = search(query, limit=10, speaker=speaker, source=source)
+    docs = search(query, limit=30, speaker=speaker, source=source)
     docs = rerank(query, docs, top_n=4)
     if docs:
         context = "\n\n".join([d["content"] for d in docs])
