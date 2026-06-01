@@ -158,7 +158,7 @@ def rerank(query, docs, top_n=4):
     """CrossEncoder로 (질문, 청크) 쌍을 채점해 상위 top_n개만 반환."""
     if not docs or len(docs) <= top_n:
         return docs
-    pairs = [(query, doc["content"]) for doc in docs]
+    pairs = [(query, doc["content"][:500]) for doc in docs]
     scores = reranker.predict(pairs)
     ranked = sorted(zip(scores, docs), key=lambda x: x[0], reverse=True)
     return [doc for _, doc in ranked[:top_n]]
