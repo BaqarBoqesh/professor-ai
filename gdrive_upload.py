@@ -72,8 +72,14 @@ def delete_from_supabase(supabase, file_id, filename):
     # 기존 데이터 호환: 파일명으로도 삭제
     supabase.table("documents").delete().eq("metadata->>source", filename).execute()
 
+_SPEAKER_EXCLUDE = {
+    "날짜", "언어", "유형", "태그", "제목", "제자들", "성경본문",
+    "강의자/저자", "주제", "특징", "의미", "어원", "위치", "출신", "역할", "질문",
+}
+
 def extract_speakers(text):
-    return sorted(set(re.findall(r'^([^\s:]{1,10}):', text, re.MULTILINE)))
+    candidates = re.findall(r'^([^\s:]{1,10}):', text, re.MULTILINE)
+    return sorted({s for s in candidates if len(s) > 1 and s not in _SPEAKER_EXCLUDE})
 
 def generate_summary(text, speakers):
     claude = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))

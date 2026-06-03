@@ -166,8 +166,7 @@ def rerank(query, docs, top_n=4):
 def ask(query):
     speaker = extract_speaker_from_query(query)
     source = extract_source_from_query(query)
-    st.write(f"🔍 디버그: speaker={speaker}, source={source}")  # 추가
-    # Before: docs = search(query, speaker=speaker, source=source)
+# Before: docs = search(query, speaker=speaker, source=source)
     docs = search(query, limit=30, speaker=speaker, source=source)
     docs = rerank(query, docs, top_n=4)
     if docs:
