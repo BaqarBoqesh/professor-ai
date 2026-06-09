@@ -2,7 +2,7 @@ name: Keep Supabase Alive
 
 on:
   schedule:
-    - cron: '0 9 * * 1'
+    - cron: '0 9 * * 1,4'
   workflow_dispatch:
 
 jobs:
@@ -14,3 +14,4 @@ jobs:
           curl -s "${{ secrets.SUPABASE_URL }}/rest/v1/documents?select=id&limit=1" \
             -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}"
+          echo "Supabase pinged successfully"
