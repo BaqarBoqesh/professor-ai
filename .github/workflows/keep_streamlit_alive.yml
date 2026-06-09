@@ -3,10 +3,26 @@ name: Keep Streamlit Alive
 on:
   schedule:
     - cron: '0 */12 * * *'
+  workflow_dispatch:
 
 jobs:
-  ping:
+  wake:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Streamlit app
-        run: curl -s https://profeappr-ai-cnkgabtrerxgqz2s28ihr6.streamlit.app/ > /dev/null
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      - name: Wake Streamlit app
+        run: |
+          python - <<'EOF'
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              browser = p.chromium.launch()
+              page = browser.new_page()
+              page.goto("https://profeappr-ai-cnkgabtrerxgqz2s28ihr6.streamlit.app/", timeout=60000)
+              page.wait_for_timeout(10000)
+              browser.close()
+              print("Done!")
+          EOF
